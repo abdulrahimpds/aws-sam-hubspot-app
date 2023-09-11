@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  HubSpotAppIntegration
+
+  SAM Template for HubSpot App Integration
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  ItemsDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: HubSpotObjects
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+
+  HubSpotUsersDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: HubSpotUsers
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  HubSpotIntegrationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: !GetAtt CustomHubSpotIntegrationFunctionRole.Arn
+      CodeUri: hubspot_function/
+      Handler: app.handler  # Changed handler for Node.js
+      Runtime: nodejs14.x   # Changed runtime to Node.js
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: HubSpotObjects
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ItemsDynamoDBTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref HubSpotUsersDynamoDBTable
+      Events:
+        Install:
+          Type: Api
+          Properties:
+            Path: /install
+            Method: get
+        WebhookGet:
+          Type: Api
+          Properties:
+            Path: /webhook
+            Method: get
+        WebhookPost:
+          Type: Api
+          Properties:
+            Path: /webhook
+            Method: post
+
+  CustomHubSpotIntegrationFunctionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LambdaLoggingPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: DynamoDBCrudPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:UpdateItem'
+                Resource:
+                  - !GetAtt ItemsDynamoDBTable.Arn
+                  - !GetAtt HubSpotUsersDynamoDBTable.Arn
+
+Outputs:
+  HubSpotIntegrationApi:
+    Description: "API Gateway endpoint URL for Prod stage for HubSpot integration"
+    Value: !Sub "https://${HubSpotIntegrationFunction}.execute-api.${AWS::Region}.amazonaws.com/Prod/install"
+
+  HubSpotIntegrationFunction:
+    Description: "Lambda Function ARN for HubSpot integration"
+    Value: !GetAtt HubSpotIntegrationFunction.Arn
