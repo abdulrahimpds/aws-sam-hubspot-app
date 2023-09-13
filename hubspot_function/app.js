@@ -13,6 +13,7 @@ const HUBSPOT_CLIENT_SECRET = "Your HubSpot app's client secret.";
 // DynamoDB setup
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE;
+const API_GATEWAY = "API Gateway > APIs > sam-app > Stages";
 
 console.log('DYNAMODB_TABLE:', DYNAMODB_TABLE);
 
@@ -180,14 +181,14 @@ async function crmCardHandler(event) {
 				type: "ACTION_HOOK",
 				httpMethod: "POST",
 				associatedObjectProperties: [],
-				uri: "API Gateway > APIs > sam-app > Stages/Prod/webhook",
+				uri: `${API_GATEWAY}/Prod/webhook`,
 				label: "Save to DB"
 			}]
 		}],
 		primaryAction: {
 			type: "ACTION_HOOK",
 			httpMethod: "POST",
-			uri: "API Gateway > APIs > sam-app > Stages/Prod/webhook",
+			uri: `${API_GATEWAY}/Prod/webhook`,
 			label: "Save to DB"
 		}
 	};
@@ -217,7 +218,7 @@ async function installHandler(event) {
 			grant_type: 'authorization_code',
 			client_id: HUBSPOT_CLIENT_ID,
 			client_secret: HUBSPOT_CLIENT_SECRET,
-			redirect_uri: 'API Gateway > APIs > sam-app > Stages/Prod/install',
+			redirect_uri: `${API_GATEWAY}/Prod/install`,
 			code: code,
 		}), {
 			headers: {
