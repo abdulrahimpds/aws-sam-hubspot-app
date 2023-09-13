@@ -36,10 +36,12 @@ async function webhookHandler(event) {
 		default:
 			return {
 				statusCode: 405,
-					body: JSON.stringify({
-						error: 'Method not allowed'
-					})
-			};
+				body: JSON.stringify(
+				{
+					error: 'Method not allowed'
+				}
+			)
+		};
 	}
 }
 
